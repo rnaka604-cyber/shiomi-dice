@@ -1,0 +1,1083 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>潮見港ダイス</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<style>
+/* 晴れた港のボードゲーム盤: 波もようの海の上に、太いふちどりの紙の板とカードを置く。色はわざと1種類(明るい昼)に決めている */
+:root{
+  --sea:#1F8FD0; --sea-deep:#0E5F99; --sea-light:#5DB8EA;
+  --paper:#FFFBF2; --paper2:#FFF0D6; --ink:#22314A; --muted:#5E6B80;
+  --coral:#FF6A48; --coral-deep:#D9472A;
+  --sun:#FFC83A; --sun-deep:#E09A00;
+  --umi:#25A6DE; --mise:#FF9B1A; --yado:#EC4E86; --meisho:#7C5CE6; --leaf:#34B872;
+  --p1:#FF6A48; --p2:#25A6DE; --p3:#34B872; --p4:#9A6BF0;
+  --f-display:"Dela Gothic One","Hiragino Sans","Yu Gothic",sans-serif;
+  --f-body:"M PLUS Rounded 1c","Hiragino Maru Gothic ProN","Hiragino Sans","Yu Gothic","Meiryo",sans-serif;
+  --line:3px solid var(--ink); --r:16px; --lift:0 5px 0 var(--ink);
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;color:var(--ink);font-family:var(--f-body);font-size:15.5px;line-height:1.7;
+  background-color:var(--sea);
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='40' viewBox='0 0 120 40'%3E%3Cpath d='M0 20 Q15 8 30 20 T60 20 T90 20 T120 20' fill='none' stroke='%23ffffff' stroke-opacity='.16' stroke-width='3'/%3E%3C/svg%3E"),
+    linear-gradient(180deg,var(--sea-light) 0%,var(--sea) 35%,var(--sea-deep) 100%);
+  background-attachment:fixed;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:calc(18px + env(safe-area-inset-top,0px)) calc(56px + env(safe-area-inset-bottom,0px));min-height:100vh}
+[hidden]{display:none!important}
+#app{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+h1,h2,h3{font-family:var(--f-display);font-weight:400;margin:0;text-wrap:balance;letter-spacing:.03em}
+h2{font-size:1.1rem;display:flex;align-items:center;gap:8px}
+ruby rt{font-size:.55em;font-weight:700;letter-spacing:0}
+
+/* ボタン:押しこめる太いボタン */
+button{font:inherit;font-weight:800;cursor:pointer;border-radius:12px;border:var(--line);background:#fff;color:var(--ink);
+  padding:9px 18px;box-shadow:0 4px 0 var(--ink);transition:transform .06s, box-shadow .06s}
+button:hover:not(:disabled){background:var(--paper2)}
+button:active:not(:disabled){transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+button:disabled{opacity:.5;cursor:not-allowed;box-shadow:0 2px 0 var(--ink)}
+button.primary{background:var(--coral);color:#fff;text-shadow:0 2px 0 var(--coral-deep)}
+button.primary:hover:not(:disabled){background:#FF7D5E}
+button.big{font-size:1.2rem;padding:13px 28px}
+button.small{padding:4px 12px;font-size:.85rem;box-shadow:0 3px 0 var(--ink)}
+button:focus-visible,input:focus-visible{outline:4px solid var(--sun);outline-offset:2px}
+input{font:inherit;font-weight:700;padding:10px 14px;border-radius:12px;border:var(--line);background:#fff;color:var(--ink);min-width:0}
+input::placeholder{color:#9AA4B5}
+.muted{color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+.board{background:var(--paper);border:var(--line);border-radius:var(--r);padding:20px;box-shadow:var(--lift)}
+.label{font-size:.8rem;letter-spacing:.08em;color:var(--muted);font-weight:800}
+
+/* コインとスター */
+.coin{display:inline-block;position:relative;width:1.05em;height:1.05em;border-radius:50%;vertical-align:-.15em;margin-right:4px;
+  background:radial-gradient(circle at 35% 30%,#FFE69A 0 25%,var(--sun) 55%,var(--sun-deep) 100%);border:2px solid var(--ink)}
+.coin::after{content:"";position:absolute;left:50%;top:50%;width:28%;height:28%;transform:translate(-50%,-50%);background:var(--ink);border-radius:1px;opacity:.75}
+.star{color:var(--sun);-webkit-text-stroke:1.5px var(--ink);paint-order:stroke fill;font-size:1.1em;margin-right:2px}
+
+/* 見出し */
+.top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px}
+.brand h1{font-size:clamp(2rem,7vw,3.1rem);line-height:1.05;color:#fff;-webkit-text-stroke:2px var(--ink);paint-order:stroke fill;text-shadow:0 5px 0 var(--ink)}
+.brand h1 span{color:var(--sun)}
+.brand p{margin:8px 0 0;color:#fff;font-weight:800;text-shadow:0 2px 0 var(--sea-deep)}
+.pills{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:4px 14px;border-radius:999px;background:#fff;border:var(--line);font-weight:800;font-size:.88rem;box-shadow:0 3px 0 var(--ink)}
+.pill.high{background:var(--umi);color:#fff}
+.pill.low{background:var(--mise);color:#fff}
+.pill svg{width:18px;height:18px;fill:currentColor}
+
+/* はじめの画面 */
+.home{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:18px}
+.home .board{display:flex;flex-direction:column;gap:14px}
+.field{display:flex;flex-direction:column;gap:6px}
+.code-in{text-transform:uppercase;letter-spacing:.3em;width:8.5em;font-family:var(--f-display);font-weight:400}
+.notice{padding:10px 14px;border-radius:12px;background:var(--paper2);border:2px dashed var(--ink);font-size:.93rem;font-weight:700}
+.notice.warn{background:#FFE1D8;border-style:solid;border-color:var(--coral-deep)}
+
+/* 待合室 */
+.seats{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px}
+.seat{border:3px dashed #B7C0CE;border-radius:14px;padding:12px 14px;min-height:60px;display:flex;align-items:center;gap:10px;font-weight:800;color:#9AA4B5}
+.seat.filled{border:var(--line);background:#fff;color:var(--ink);box-shadow:0 4px 0 var(--ink)}
+.seat .num{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:#fff;border:2px solid var(--ink);font-family:var(--f-display);flex:none}
+.off{font-size:.75rem;color:var(--coral-deep);font-weight:800;margin-left:6px}
+.you,.cpu{font-size:.72rem;background:var(--sun);color:var(--ink);border:2px solid var(--ink);padding:0 8px;border-radius:999px;margin-left:6px;vertical-align:2px;text-shadow:none}
+.cpu{background:#DDE3EC}
+.bigcode{font-family:var(--f-display);font-size:2.6rem;letter-spacing:.22em;color:var(--coral);-webkit-text-stroke:2px var(--ink);paint-order:stroke fill;line-height:1.1}
+.share{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.share input{flex:1 1 260px;font-size:.85rem}
+.modes{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+.mode{text-align:left;display:flex;flex-direction:column;gap:4px;padding:14px 16px;font-weight:700}
+.mode b{font-family:var(--f-display);font-weight:400;font-size:1.2rem}
+.mode small{color:var(--muted);line-height:1.55;font-size:.85rem}
+.mode.on{background:var(--sun)}
+.mode.on small{color:var(--ink)}
+.mode:disabled{opacity:1;cursor:default}
+.mode:disabled:not(.on){opacity:.5}
+
+/* できごと */
+.event{display:flex;gap:16px;align-items:center;background:#fff;padding:14px 18px;flex-wrap:wrap}
+.event .tag{font-family:var(--f-display);background:var(--coral);color:#fff;border:var(--line);border-radius:12px;padding:6px 12px;line-height:1.3;text-align:center;font-size:.85rem;box-shadow:0 3px 0 var(--ink)}
+.event .tag b{display:block;font-weight:400;font-size:1.25rem}
+.event .ename{font-family:var(--f-display);font-size:1.25rem;line-height:1.5}
+.event .etext{font-weight:700}
+.event.pop{animation:flip .6s ease-out}
+@keyframes flip{0%{transform:rotateX(90deg)}100%{transform:none}}
+
+/* 手番の板 */
+.turn{display:grid;grid-template-columns:auto 1fr;gap:22px;align-items:center;background:#fff}
+@media (max-width:620px){.turn{grid-template-columns:1fr;justify-items:start}}
+.dice-wrap{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:84px}
+.dice{display:flex;gap:14px}
+.die{width:70px;height:70px;border-radius:16px;background:#fff;border:var(--line);box-shadow:0 5px 0 var(--ink),inset 0 -6px 0 #E6EAF0;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);padding:9px 9px 13px;gap:2px}
+.die i{display:block;border-radius:50%;background:var(--ink);width:12px;height:12px;margin:auto;visibility:hidden}
+.die i.on{visibility:visible}
+.die.one i.on{background:#E63B2E;width:20px;height:20px}
+.die.blank{background:var(--paper2);box-shadow:0 5px 0 var(--ink);display:grid;place-items:center}
+.die.blank::before{content:"?";font-family:var(--f-display);font-size:1.8rem;color:#C2B79E}
+.die.rolled{animation:tumble .55s cubic-bezier(.3,1.5,.5,1)}
+@keyframes tumble{0%{transform:rotate(-200deg) scale(.4)}100%{transform:none}}
+.sum{font-family:var(--f-display);font-size:1.05rem}
+.sum .zoro{color:var(--coral)}
+.turn-msg{display:flex;flex-direction:column;gap:10px;min-width:0}
+.who{font-family:var(--f-display);font-size:1.4rem;line-height:1.3}
+.who b{font-weight:400;color:var(--coral)}
+.say{font-weight:700;font-size:1.02rem}
+.hint{font-size:.85rem;color:var(--muted);font-weight:700}
+.choices{display:flex;flex-wrap:wrap;gap:10px}
+.choices button{display:flex;flex-direction:column;align-items:center;line-height:1.25;padding:10px 18px;min-width:96px}
+.choices button .n{font-family:var(--f-display);font-size:1.6rem;font-weight:400}
+.choices button small{font-weight:700;font-size:.8rem;color:var(--muted)}
+.choices button.best{background:var(--sun)}
+.choices button.best small{color:var(--ink)}
+.dicebtn{display:inline-flex;align-items:center;gap:8px}
+.mini{display:inline-grid;width:22px;height:22px;border-radius:6px;background:#fff;border:2px solid var(--ink);place-items:center;font-size:.7rem;color:var(--ink);text-shadow:none;font-family:var(--f-display)}
+
+/* プレイヤーの板 */
+.players{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+.player{position:relative;background:#fff;border:var(--line);border-radius:var(--r);box-shadow:var(--lift);display:flex;flex-direction:column;min-width:0}
+.player.active{outline:5px solid var(--sun);outline-offset:0}
+.phead{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 14px;color:#fff;border-bottom:var(--line);border-radius:13px 13px 0 0}
+.pname{font-weight:800;overflow-wrap:anywhere;text-shadow:0 2px 0 rgba(0,0,0,.25)}
+.pbody{padding:12px 14px;display:flex;flex-direction:column;gap:10px}
+.stats{display:flex;gap:16px;align-items:center;font-variant-numeric:tabular-nums;font-weight:800;font-size:1.15rem;flex-wrap:wrap}
+.delta{font-size:.85rem;padding:0 8px;border-radius:999px;border:2px solid var(--ink);color:#fff}
+.delta.pos{background:var(--leaf)} .delta.neg{background:var(--coral)}
+.delta.pop{animation:bump .5s ease-out}
+@keyframes bump{0%{transform:scale(.3) translateY(8px)}60%{transform:scale(1.25)}100%{transform:none}}
+.meter{height:12px;border-radius:999px;background:var(--paper2);border:2px solid var(--ink);overflow:hidden}
+.meter span{display:block;height:100%;background:repeating-linear-gradient(45deg,var(--sun) 0 8px,#FFD86B 8px 16px)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:.78rem;padding:1px 9px;border-radius:999px;color:#fff;font-weight:800;white-space:nowrap;border:2px solid var(--ink)}
+.chip.bonus{background:var(--sun);color:var(--ink)}
+.t-umi{background-color:var(--umi)} .t-mise{background-color:var(--mise)} .t-yado{background-color:var(--yado)} .t-meisho{background-color:var(--meisho)}
+.bubble{position:absolute;right:10px;top:-18px;background:#fff;border:var(--line);border-radius:14px;padding:4px 12px;font-weight:800;box-shadow:0 3px 0 var(--ink);z-index:3;animation:bump .4s ease-out;white-space:nowrap}
+.stamps{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+
+/* カード */
+.shop{display:flex;flex-direction:column;gap:16px}
+.shop-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:14px}
+.card{text-align:left;padding:0;overflow:hidden;display:flex;flex-direction:column;border-radius:14px;background:#fff;font-weight:700;min-width:0;box-shadow:0 4px 0 var(--ink)}
+.card:hover:not(:disabled){background:#fff}
+.card .art{position:relative;height:92px;border-bottom:var(--line);display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;color:#fff}
+.card .art.t-umi{background-image:radial-gradient(circle at 50% 120%,transparent 0 9px,rgba(255,255,255,.28) 10px 12px,transparent 13px);background-size:24px 14px}
+.card .art.t-mise{background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.25) 0 12px,transparent 12px 24px)}
+.card .art.t-yado{background-image:radial-gradient(rgba(255,255,255,.3) 3px,transparent 4px);background-size:16px 16px}
+.card .art.t-meisho{background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.18) 0 6px,transparent 6px 14px)}
+.card .art svg{width:40px;height:40px;fill:#fff;filter:drop-shadow(0 2px 0 rgba(0,0,0,.25))}
+.card .badge{position:absolute;top:8px;right:8px;min-width:36px;height:36px;padding:0 6px;border-radius:999px;background:#fff;color:var(--ink);border:var(--line);display:grid;place-items:center;font-family:var(--f-display);font-size:1.05rem;line-height:1}
+.card .kind{position:absolute;top:8px;left:8px;font-size:.7rem;font-weight:800;line-height:1.35;background:rgba(0,0,0,.22);padding:2px 8px;border-radius:10px;width:max-content;max-width:calc(100% - 60px)}
+.card .body{padding:8px 11px 10px;display:flex;flex-direction:column;gap:4px;flex:1}
+.card .cname{font-weight:800;font-size:1.05rem;line-height:1.5}
+.card .ctext{font-size:.8rem;color:var(--muted);line-height:1.55;flex:1;font-weight:700}
+.card .foot{display:flex;justify-content:space-between;align-items:center;font-weight:800;font-variant-numeric:tabular-nums;font-size:1rem;padding-top:6px;border-top:2px dashed #D9DEE6}
+.card .foot s{color:var(--muted);font-size:.8rem;margin-right:4px}
+.card.buyable{cursor:pointer;outline:4px solid var(--sun);outline-offset:-1px}
+.card.buyable:hover{transform:translateY(-3px);box-shadow:0 7px 0 var(--ink)}
+.card:disabled{opacity:1;cursor:default}
+.card.dim{filter:grayscale(.7);opacity:.6}
+.card.owned .foot::after{content:"たてた!";color:var(--leaf);font-size:.85rem}
+.card.key .art::after{content:"おすすめ";position:absolute;bottom:6px;left:8px;background:var(--sun);color:var(--ink);border:2px solid var(--ink);border-radius:999px;font-size:.68rem;padding:0 7px}
+.buyhint{font-weight:800;background:var(--sun);border:2px solid var(--ink);border-radius:999px;padding:2px 12px;font-size:.85rem}
+
+/* できごと・あそびかた */
+.log{max-height:280px;overflow-y:auto;display:flex;flex-direction:column;font-size:.9rem;margin:0;padding:0;list-style:none;font-weight:700}
+.log li{padding:5px 0;border-bottom:2px dotted #D9DEE6}
+.log li:first-child{color:var(--coral-deep)}
+.bottom{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media (max-width:760px){.bottom{grid-template-columns:1fr}}
+details summary{cursor:pointer;font-family:var(--f-display);font-size:1.1rem;list-style-position:inside}
+.rules{font-size:.95rem}
+.rules ol{padding-left:1.4em;margin:8px 0;display:flex;flex-direction:column;gap:6px}
+.rules p{margin:8px 0}
+.rules .tag{display:inline-block;color:#fff;border:2px solid var(--ink);border-radius:999px;padding:0 9px;font-size:.82rem;font-weight:800;margin-right:2px}
+.win{text-align:center;display:flex;flex-direction:column;gap:12px;align-items:center;background:var(--sun)}
+.win h2{font-size:2rem;color:#fff;-webkit-text-stroke:2px var(--ink);paint-order:stroke fill;text-shadow:0 4px 0 var(--ink);justify-content:center}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:#fff;padding:12px 20px;border-radius:14px;font-weight:800;max-width:calc(100% - 32px);z-index:20;border:3px solid #fff}
+@media (prefers-reduced-motion:reduce){.die.rolled,.delta.pop,.bubble,.event.pop{animation:none} button{transition:none}}
+</style>
+</head>
+<body>
+<div id="app"><div class="board">よみこみ中…</div></div>
+<div id="toast" class="toast" hidden></div>
+
+<script>
+"use strict";
+/* ============ カードとルール ============ */
+const MODES = {
+  normal:{label:"ノーマル", win:20, market:5},
+  plus:  {label:"プラス+",  win:25, market:6},
+};
+const SET_BONUS = 2;
+/* plus:true のカードはプラスモードだけに入る */
+const CARDS = {
+  kobune:  {name:"小舟",     yomi:"こぶね",       type:"umi",  num:[1],   cost:1, pts:0, inc:1, basic:true},
+  kujira:  {name:"鯨見舟",   yomi:"くじらみぶね", type:"umi",  num:[1],   cost:6, pts:2, inc:4, copies:2, plus:true},
+  sanbashi:{name:"釣り桟橋", yomi:"つりさんばし", type:"umi",  num:[2],   cost:1, pts:0, inc:1, copies:6},
+  enden:   {name:"塩田",     yomi:"えんでん",     type:"umi",  num:[2],   cost:3, pts:1, inc:1, low:4, copies:4, plus:true},
+  himono:  {name:"干物小屋", yomi:"ひものごや",   type:"umi",  num:[3],   cost:2, pts:0, inc:1, low:3, copies:5},
+  noriami: {name:"海苔網",   yomi:"のりあみ",     type:"umi",  num:[4],   cost:2, pts:0, inc:1, copies:5},
+  shinju:  {name:"真珠筏",   yomi:"しんじゅいかだ",type:"umi", num:[4],   cost:5, pts:2, inc:3, copies:3, plus:true},
+  kaki:    {name:"牡蠣棚",   yomi:"かきだな",     type:"umi",  num:[5],   cost:3, pts:1, inc:2, copies:5},
+  amimoto: {name:"網元",     yomi:"あみもと",     type:"umi",  num:[6],   cost:4, pts:1, inc:2, copies:4},
+  kujiya:  {name:"くじ屋",   yomi:"くじや",       type:"mise", num:[1],   cost:2, pts:0, inc:0, kuji:true, copies:4},
+  watashi: {name:"渡し船",   yomi:"わたしぶね",   type:"mise", num:[2],   cost:4, pts:1, inc:0, steal:1, copies:3, plus:true},
+  chaya:   {name:"茶屋",     yomi:"ちゃや",       type:"mise", num:[3],   cost:2, pts:0, inc:2, copies:5},
+  roten:   {name:"露店",     yomi:"ろてん",       type:"mise", num:[4],   cost:1, pts:0, inc:2, basic:true},
+  dango:   {name:"団子屋",   yomi:"だんごや",     type:"mise", num:[5],   cost:2, pts:0, inc:2, copies:5},
+  tonya:   {name:"問屋",     yomi:"とんや",       type:"mise", num:[6],   cost:4, pts:1, inc:0, per:"mise", copies:4, plus:true},
+  miyage:  {name:"土産物屋", yomi:"おみやげや",   type:"mise", num:[7],   cost:3, pts:1, inc:3, copies:4},
+  sakanaya:{name:"魚屋",     yomi:"さかなや",     type:"mise", num:[8],   cost:3, pts:1, inc:0, per:"umi", copies:4},
+  ryogae:  {name:"両替商",   yomi:"りょうがえしょう",type:"mise",num:[9], cost:3, pts:1, inc:4, copies:4},
+  asaichi: {name:"朝市",     yomi:"あさいち",     type:"mise", num:[10],  cost:4, pts:1, inc:5, copies:4},
+  zosen:   {name:"造船所",   yomi:"ぞうせんじょ", type:"mise", num:[11],  cost:6, pts:2, inc:8, copies:3},
+  hanabi:  {name:"花火師",   yomi:"はなびし",     type:"mise", num:[12],  cost:5, pts:2, inc:12, copies:3, plus:true},
+  yuya:    {name:"湯屋",     yomi:"ゆや",         type:"yado", num:[6],   cost:3, pts:1, inc:2, copies:4},
+  izakaya: {name:"居酒屋",   yomi:"いざかや",     type:"yado", num:[7],   cost:2, pts:0, inc:2, copies:5},
+  funayado:{name:"船宿",     yomi:"ふなやど",     type:"yado", num:[8],   cost:3, pts:1, inc:3, copies:4},
+  ryotei:  {name:"料亭",     yomi:"りょうてい",   type:"yado", num:[10],  cost:4, pts:1, inc:4, copies:3, plus:true},
+  kaizoku: {name:"海賊の隠れ家",yomi:"かいぞくのかくれが",type:"yado",num:[11],cost:5,pts:1,inc:0, half:true, copies:2, plus:true},
+  misemono:{name:"見世物小屋",yomi:"みせものごや",type:"yado", num:[2,12],cost:4, pts:1, inc:5, copies:3},
+  kobo:    {name:"サイコロ工房",yomi:"さいころこうぼう",type:"meisho", cost:4, pts:1, key:true, note:"サイコロを 1こか2こ、えらんで ふれるようになる"},
+  kura:    {name:"蔵",       yomi:"くら",         type:"meisho", cost:5,  pts:2, note:"なにも買わずに番をおえると、コインが1まいではなく3まいもらえる"},
+  yagura:  {name:"物見やぐら",yomi:"ものみやぐら",type:"meisho", cost:6,  pts:2, note:"じぶんの番のはじめに、コインが2まい以下なら2まいもらえる"},
+  funatsuki:{name:"船着き場",yomi:"ふなつきば",   type:"meisho", cost:7,  pts:3, note:"じぶんの番でゾロ目が出たら、もう1回じぶんの番"},
+  sokko:   {name:"測候所",   yomi:"そっこうじょ", type:"meisho", cost:7,  pts:3, note:"サイコロをふる前に、コイン1まいで「みちしお」と「ひきしお」を入れかえられる", plus:true},
+  jinja:   {name:"海の社",   yomi:"うみのやしろ", type:"meisho", cost:8,  pts:3, note:"だれかがゾロ目を出すたびに、コインが2まいもらえる"},
+  kanran:  {name:"観覧車",   yomi:"かんらんしゃ", type:"meisho", cost:9,  pts:3, note:"じぶんの番のはじめに、コインが1まいもらえる"},
+  torii:   {name:"大鳥居",   yomi:"おおとりい",   type:"meisho", cost:10, pts:4, note:"じぶんの「やど」カードでもらえるコインが、1まいずつふえる", plus:true},
+  todai:   {name:"灯台",     yomi:"とうだい",     type:"meisho", cost:12, pts:4, note:"みちしおの時、じぶんの「うみ」カードのコインが、もう1まいふえる"},
+  shokan:  {name:"商館",     yomi:"しょうかん",   type:"meisho", cost:16, pts:5, note:"じぶんの「おみせ」カードのコインが、1まいふえる"},
+  tenshu:  {name:"天守閣",   yomi:"てんしゅかく", type:"meisho", cost:18, pts:7, note:"とくべつな力はないけれど、スターがいちばん多い", plus:true},
+};
+/* 1しゅう(全員の番がおわる)ごとに1つおこる、港のできごと */
+const EVENTS = {
+  calm:     {name:"おだやかな日", text:"きょうは なにも おこらない。のんびり いこう。"},
+  tairyo:   {name:"大漁の日", yomi:"たいりょうのひ", text:"魚がたくさん!「うみ」カードのコインが 1まい ふえる。"},
+  matsuri:  {name:"お祭りの日", yomi:"おまつりのひ", text:"町がにぎやか!「おみせ」カードのコインが 1まい ふえる。"},
+  tabibito: {name:"旅人がいっぱい", yomi:"たびびとがいっぱい", text:"「やど」カードのコインが 1まい ふえる。"},
+  ooyasuri: {name:"大安売り", yomi:"おおやすうり", text:"カードが ぜんぶ コイン1まい 安くなる(1まいより安くは ならない)。"},
+  arashi:   {name:"嵐", yomi:"あらし", text:"船が出せない!「うみ」カードから コインが もらえない。"},
+  oyasumi:  {name:"お店のお休み", yomi:"おみせのおやすみ", text:"「おみせ」カードから コインが もらえない。"},
+  takara:   {name:"宝さがし", yomi:"たからさがし", text:"サイコロで「6」を出した人は、コインを 3まい 見つける。"},
+  fushigi:  {name:"ふしぎな風", text:"なにも買わずに おわると、コインが いつもより 2まい 多く もらえる。"},
+  okozukai: {name:"おこづかいの日", text:"みんな コインを 2まい もらった!", instant:true},
+  oshio:    {name:"大しお", yomi:"おおしお", text:"しおが かわった!", instant:true},
+  irekae:   {name:"新しい荷物", yomi:"あたらしいにもつ", text:"いちばの カードが ぜんぶ 入れかわった!", instant:true},
+  nengu:    {name:"年貢の日", yomi:"ねんぐのひ", text:"コインを 10まい いじょう もっている人は、3まい はらった。", instant:true},
+  hoshi:    {name:"流れ星", yomi:"ながれぼし", text:"スターが いちばん 少ない人に、スターが 1こ ふってきた!", instant:true},
+};
+const STAMPS = ["すごい!","やったね!","くやしい〜","ドンマイ","はやく〜","ありがとう","ナイス!","まけないぞ"];
+const TYPES = {
+  umi:{label:"うみ", when:"だれの番でも"},
+  mise:{label:"おみせ", when:"じぶんの番"},
+  yado:{label:"やど", when:"ほかの人の番"},
+  meisho:{label:"めいしょ", when:"ずっときく"},
+};
+const ICONS = {
+  umi:'<svg viewBox="0 0 24 24"><path d="M3 14h18l-2.5 5h-13zM11 3h2v9h-2zM13 4l6 6h-6z"/></svg>',
+  mise:'<svg viewBox="0 0 24 24"><path d="M2 3h20l-1.5 6c-.4 1.4-2.6 1.4-3 0-.4 1.4-2.6 1.4-3 0-.4 1.4-2.6 1.4-3 0-.4 1.4-2.6 1.4-3 0-.4 1.4-2.6 1.4-3 0zM4 12h16v9h-5v-6H9v6H4z"/></svg>',
+  yado:'<svg viewBox="0 0 24 24"><path d="M11 1h2v2.2c3.4.5 6 3.4 6 6.8v4c0 3.5-2.6 6.4-6 6.9V23h-2v-2.1c-3.4-.5-6-3.4-6-6.9v-4c0-3.4 2.6-6.3 6-6.8z"/></svg>',
+  meisho:'<svg viewBox="0 0 24 24"><path d="M9 1h6l1 4H8zM7 6h10l2.5 15H22v2H2v-2h2.5zM11 13h2v6h-2z"/></svg>',
+};
+const TIDE_ICON = '<svg viewBox="0 0 24 24"><path d="M2 15c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2v3c-2.5 0-2.5-2-5-2s-2.5 2-5 2-2.5-2-5-2-2.5 2-5 2z"/><path d="M2 9c2.5 0 2.5-2 5-2s2.5 2 5 2 2.5-2 5-2 2.5 2 5 2v2.5c-2.5 0-2.5-2-5-2s-2.5 2-5 2-2.5-2-5-2-2.5 2-5 2z" opacity=".55"/></svg>';
+const MEISHO = Object.keys(CARDS).filter(k=>CARDS[k].type==="meisho");
+const BASICS = Object.keys(CARDS).filter(k=>CARDS[k].basic);
+const modeOf = s => (s && MODES[s.mode]) ? s.mode : "normal";
+const inMode = (mode,id) => !CARDS[id].plus || mode==="plus";
+const winOf = s => MODES[modeOf(s)].win;
+const meishoOf = s => MEISHO.filter(id=>inMode(modeOf(s),id));
+const marketKinds = mode => Object.keys(CARDS).filter(k=>CARDS[k].copies && inMode(mode,k)).length;
+const meishoKinds = mode => MEISHO.filter(k=>inMode(mode,k)).length;
+const tideName = t => t==="high" ? "みちしお" : "ひきしお";
+const ev = s => s.event || "calm";
+const costOf = (s,id) => ev(s)==="ooyasuri" ? Math.max(1, CARDS[id].cost-1) : CARDS[id].cost;
+
+function cardText(id){
+  const c = CARDS[id];
+  if(c.type==="umi")  return `サイコロのどれかが「${c.num[0]}」なら、コイン${c.inc}まい` + (c.low?`(ひきしおの時は${c.low}まい)`:"");
+  if(c.type==="mise"){
+    const head=`じぶんの番に「${c.num[0]}」をえらぶと、`;
+    if(c.kuji) return head+`くじを ひく!コインが 0〜5まい もらえる`;
+    if(c.steal) return head+`ほかの人みんなから${c.steal}まいずつもらえる`;
+    if(c.per) return head+`もっている「${TYPES[c.per].label}」カード1まいにつきコイン1まい`;
+    return head+`コイン${c.inc}まい`;
+  }
+  if(c.type==="yado"){
+    if(c.half) return `ほかの人の番で、合計が「${c.num[0]}」なら、その人のコインの はんぶんを もらう(6まいまで)`;
+    return `ほかの人の番で、合計が「${c.num.join("」か「")}」なら、その人からコイン${c.inc}まい`;
+  }
+  return c.note;
+}
+const rubyOf = (name,yomi) => yomi ? `<ruby>${name}<rt>${yomi}</rt></ruby>` : name;
+const ruby = id => rubyOf(CARDS[id].name, CARDS[id].yomi);
+
+const rnd = n => Math.floor(Math.random()*n);
+function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=rnd(i+1);[a[i],a[j]]=[a[j],a[i]]} return a; }
+function newDeck(mode){ const d=[]; for(const k in CARDS){ const c=CARDS[k]; if(!inMode(mode,k)) continue; for(let i=0;i<(c.copies||0);i++) d.push(k);} return shuffle(d); }
+function mkPlayer(id,name,cpu){ const p={id,name,coins:3,cards:{kobune:1,roten:1},bonus:0}; if(cpu) p.cpu=true; return p; }
+function newGame(code, hostId, hostName, local){
+  return {v:4, code, local:!!local, mode:"normal", status:"lobby", host:hostId, players:[mkPlayer(hostId,hostName)], turn:0, phase:"roll",
+          dice:null, tide:"high", market:[], deck:[], log:[], winner:null, refreshed:false, tideUsed:false, again:false,
+          choices:null, seq:0, rollSeq:0, online:{}, event:"calm", evDeck:[], round:1, firstTurn:0, delta:{}, deltaSeq:0, stamp:null};
+}
+const cur = s => s.players[s.turn];
+const has = (p,id) => (p.cards[id]||0) > 0;
+const countType = (p,t) => Object.entries(p.cards).reduce((n,[k,v])=>n+(CARDS[k].type===t&&v?v:0),0);
+const hasSet = p => ["umi","mise","yado","meisho"].every(t=>countType(p,t)>0);
+const pts = p => Object.entries(p.cards).reduce((n,[k,v])=>n+CARDS[k].pts*v,0) + (p.bonus||0) + (hasSet(p)?SET_BONUS:0);
+const maxDice = p => has(p,"kobo") ? 2 : 1;
+function log(s,msg){ s.log.unshift(msg); if(s.log.length>50) s.log.length=50; }
+
+function drawEvent(s){
+  if(!s.evDeck || !s.evDeck.length) s.evDeck = shuffle(Object.keys(EVENTS));
+  const id = s.evDeck.shift(); s.event = id; const e = EVENTS[id];
+  log(s,`【${s.round}しゅうめ のできごと】${e.name}:${e.text}`);
+  if(id==="okozukai") s.players.forEach(p=>p.coins+=2);
+  if(id==="oshio") s.tide = s.tide==="high" ? "low" : "high";
+  if(id==="irekae"){ s.deck.push(...s.market); shuffle(s.deck); s.market=s.deck.splice(0, MODES[modeOf(s)].market); }
+  if(id==="nengu") s.players.forEach(p=>{ if(p.coins>=10) p.coins-=3; });
+  if(id==="hoshi"){ const lo=Math.min(...s.players.map(pts)); s.players.forEach(p=>{ if(pts(p)===lo) p.bonus=(p.bonus||0)+1; }); }
+}
+function startGame(s){
+  const mode=modeOf(s); s.mode=mode;
+  s.deck = newDeck(mode); s.market = s.deck.splice(0, MODES[mode].market);
+  s.players.forEach(p=>{p.coins=3; p.cards={kobune:1,roten:1}; p.bonus=0;});
+  s.status="play"; s.turn=rnd(s.players.length); s.firstTurn=s.turn; s.round=1; s.tide="high"; s.winner=null; s.log=[];
+  s.evDeck=shuffle(Object.keys(EVENTS).filter(k=>k!=="hoshi"&&k!=="nengu")); s.delta={}; s.stamp=null;
+  log(s,`${MODES[mode].label}モードでスタート!さいしょは ${cur(s).name} さんの番`);
+  drawEvent(s); s.evDeck.push("hoshi","nengu"); shuffle(s.evDeck);
+  beginTurn(s);
+}
+function beginTurn(s){
+  const p = cur(s);
+  s.phase="roll"; s.dice=null; s.refreshed=false; s.tideUsed=false; s.again=false; s.choices=null;
+  if(has(p,"kanran")){ p.coins+=1; log(s,`${p.name}:観覧車でコイン+1`); }
+  if(has(p,"yagura") && p.coins<=2){ p.coins+=2; log(s,`${p.name}:物見やぐらでコイン+2`); }
+}
+function umiGain(s,p,id){
+  if(ev(s)==="arashi") return 0;
+  const c=CARDS[id]; let g = (s.tide==="low" && c.low) ? c.low : c.inc;
+  if(s.tide==="high"){ g+=1; if(has(p,"todai")) g+=1; }
+  if(ev(s)==="tairyo") g+=1;
+  return g;
+}
+function miseBonus(s,p){ let b=0; if(s.tide==="low") b+=1; if(has(p,"shokan")) b+=1; if(ev(s)==="matsuri") b+=1; return b; }
+/* おみせの収入。apply=false なら、もらえる数を数えるだけ(くじは 2.5 として数える) */
+function miseResolve(s,p,v,apply){
+  if(ev(s)==="oyasumi") return 0;
+  let total=0;
+  for(const [k,n] of Object.entries(p.cards)){
+    const c=CARDS[k]; if(c.type!=="mise" || !c.num.includes(v) || !n) continue;
+    if(c.steal){
+      s.players.forEach(q=>{ if(q===p) return; const take=Math.min(c.steal*n, q.coins); total+=take;
+        if(apply && take){ q.coins-=take; p.coins+=take; log(s,`${p.name}:${c.name}で ${q.name} さんからコイン${take}`); } });
+      continue;
+    }
+    if(c.kuji){
+      for(let i=0;i<n;i++){
+        if(apply){ const r=rnd(6), g=r+miseBonus(s,p); total+=g; p.coins+=g; log(s,`${p.name}:くじ屋で ${r===5?"大あたり!":r===0?"はずれ…":"あたり!"} コイン+${g}`); }
+        else total += 2.5+miseBonus(s,p);
+      }
+      continue;
+    }
+    let g = (c.per ? Math.max(1,countType(p,c.per)) : c.inc) + miseBonus(s,p);
+    total += g*n; if(apply) p.coins += g*n;
+  }
+  return total;
+}
+const miseGain = (s,p,v) => miseResolve(s,p,v,false);
+const kujiAt = (s,p,v) => ev(s)!=="oyasumi" && has(p,"kujiya") && CARDS.kujiya.num.includes(v);
+function doRoll(s, count, forced){
+  const p=cur(s), n=s.players.length;
+  count = Math.min(Math.max(1,count|0), maxDice(p));
+  const dice = forced || Array.from({length:count},()=>1+rnd(6));
+  const sum = dice.reduce((a,b)=>a+b,0), zoro = dice.length===2 && dice[0]===dice[1];
+  s.dice=dice; s.rollSeq=(s.rollSeq||0)+1;
+  log(s, dice.length===1 ? `${p.name} さんが「${dice[0]}」を出した` : `${p.name} さんが「${dice[0]}」と「${dice[1]}」を出した(合計 ${sum})`);
+  if(zoro){
+    s.tide = s.tide==="high" ? "low" : "high";
+    log(s,`ゾロ目!しおが かわって「${tideName(s.tide)}」になった`);
+    s.players.forEach(q=>{ if(has(q,"jinja")){ q.coins+=2; log(s,`${q.name}:海の社でコイン+2`);} });
+    if(has(p,"funatsuki")) s.again=true;
+  }
+  if(ev(s)==="takara" && dice.includes(6)){ p.coins+=3; log(s,`${p.name}:宝さがしで コインを3まい 見つけた!`); }
+  for(let k=1;k<n;k++){
+    const q = s.players[(s.turn - k + n) % n];
+    for(const [id,cnt] of Object.entries(q.cards)){
+      const c=CARDS[id]; if(c.type!=="yado"||!cnt||!c.num.includes(sum)) continue;
+      const plus = (has(q,"torii")?1:0) + (ev(s)==="tabibito"?1:0);
+      const amt = c.half ? Math.min(6*cnt, Math.floor(p.coins/2)*cnt) : (c.inc+plus)*cnt;
+      const take=Math.min(amt, p.coins);
+      if(take>0){ p.coins-=take; q.coins+=take; log(s,`${q.name}:${c.name}で ${p.name} さんからコイン${take}`); }
+      else log(s,`${q.name}:${c.name}がうごいたけど、${p.name} さんのコインが0まいだった`);
+    }
+  }
+  s.players.forEach(q=>{
+    let got=0, names=[];
+    for(const face of dice){
+      for(const [id,cnt] of Object.entries(q.cards)){
+        const c=CARDS[id]; if(c.type!=="umi"||!cnt||!c.num.includes(face)) continue;
+        got += umiGain(s,q,id)*cnt; names.push(c.name);
+      }
+    }
+    if(got>0){ q.coins+=got; log(s,`${q.name}:${[...new Set(names)].join("と")}でコイン+${got}`); }
+  });
+  const vals=[...new Set(dice.length===2 ? [dice[0],dice[1],sum] : [sum])];
+  s.choices = vals.map(v=>({v, gain:miseGain(s,p,v), kuji:kujiAt(s,p,v)}));
+  if(s.choices.every(c=>c.gain===0)){ s.phase="buy"; s.choices=null; }
+  else s.phase="choose";
+}
+function doChoose(s,v){
+  const p=cur(s); const before=p.coins; miseResolve(s,p,v,true);
+  log(s,`${p.name}:おみせで「${v}」をえらんで コイン+${p.coins-before}`);
+  s.phase="buy"; s.choices=null;
+}
+function doTide(s){
+  const p=cur(s);
+  if(!has(p,"sokko")) return "測候所をもっていません";
+  if(s.tideUsed) return "しおの入れかえは、1回の番に1度だけです";
+  if(p.coins<1) return "コインがたりません";
+  p.coins-=1; s.tide = s.tide==="high" ? "low" : "high"; s.tideUsed=true;
+  log(s,`${p.name}:測候所で しおを「${tideName(s.tide)}」にした`);
+}
+function doBuy(s,id,src,idx){
+  const p=cur(s), c=CARDS[id];
+  if(!c || !inMode(modeOf(s),id)) return "そのカードはありません";
+  const cost=costOf(s,id);
+  if(p.coins < cost) return "コインがたりません";
+  if(src==="market"){ if(s.market[idx]!==id) return "いちばが かわりました。もう一度えらんでね"; }
+  else if(src==="meisho"){ if(c.type!=="meisho") return "えらびなおしてね"; if(has(p,id)) return "めいしょは1つずつしか たてられません"; }
+  else if(!c.basic) return "えらびなおしてね";
+  const hadSet=hasSet(p);
+  p.coins-=cost; p.cards[id]=(p.cards[id]||0)+1;
+  if(src==="market"){ s.market.splice(idx,1); if(s.deck.length) s.market.push(s.deck.shift()); }
+  log(s,`${p.name}:${c.name}をコイン${cost}まいで買った`+(c.pts?`(スター+${c.pts})`:""));
+  if(id==="kobo") log(s,`${p.name}:これからは サイコロを2こ ふれる!`);
+  if(!hadSet && hasSet(p)) log(s,`${p.name}:4しゅるい ぜんぶ そろった!そろいボーナスで スター+${SET_BONUS}`);
+  endTurn(s);
+}
+function doPass(s){
+  const p=cur(s); const g=(has(p,"kura")?3:1)+(ev(s)==="fushigi"?2:0); p.coins+=g;
+  log(s,`${p.name}:なにも買わずに コイン+${g}`); endTurn(s);
+}
+function doRefresh(s){
+  const p=cur(s);
+  if(s.refreshed) return "入れかえは、1回の番に1度だけです";
+  if(p.coins<1) return "コインがたりません";
+  p.coins-=1; s.deck.push(...s.market); shuffle(s.deck); s.market=s.deck.splice(0, MODES[modeOf(s)].market); s.refreshed=true;
+  log(s,`${p.name}:コイン1まいで いちばを入れかえた`);
+}
+function checkWin(s){
+  const w = s.players.findIndex(p=>pts(p)>=winOf(s));
+  if(w<0) return false;
+  s.status="end"; s.winner=w; s.phase="end"; log(s,`${s.players[w].name} さんがスター${pts(s.players[w])}こで かち!`); return true;
+}
+function endTurn(s){
+  const p=cur(s);
+  if(pts(p)>=winOf(s)){ s.status="end"; s.winner=s.turn; s.phase="end"; log(s,`${p.name} さんがスター${pts(p)}こで かち!`); return; }
+  if(s.again){ log(s,`${p.name}:船着き場で、もう1回 ${p.name} さんの番`); }
+  else{
+    s.turn=(s.turn+1)%s.players.length;
+    if(s.turn===s.firstTurn){ s.round++; drawEvent(s); if(checkWin(s)) return; }
+  }
+  beginTurn(s);
+}
+
+/* ============ コンピューター ============ */
+function bestChoice(s){ return s.choices.reduce((x,y)=>y.gain>x.gain?y:x).v; }
+function evalRoll(s,count){
+  const idx=s.turn, before=s.players[idx].coins, faces=[1,2,3,4,5,6];
+  const outs = count===1 ? faces.map(a=>[a]) : faces.flatMap(a=>faces.map(b=>[a,b]));
+  let total=0;
+  for(const d of outs){
+    const c=clone(s); doRoll(c,count,d);
+    if(c.phase==="choose") doChoose(c,bestChoice(c));
+    total += c.players[idx].coins - before;
+  }
+  return total/outs.length;
+}
+function aiRoll(s){ const p=cur(s); if(maxDice(p)<2) return 1; return evalRoll(s,2) >= evalRoll(s,1) ? 2 : 1; }
+function aiBuy(s){
+  const p=cur(s), opts=[], cost=id=>costOf(s,id);
+  if(!has(p,"kobo") && p.coins>=cost("kobo")) return {id:"kobo",src:"meisho",i:-1};
+  meishoOf(s).forEach(id=>{ if(!has(p,id)&&p.coins>=cost(id)) opts.push([id,"meisho",-1,CARDS[id].pts*2+CARDS[id].cost*.3]); });
+  s.market.forEach((id,i)=>{ const c=CARDS[id]; if(p.coins>=cost(id)){
+    let sc=c.cost*.6+c.pts+Math.random()*2;
+    if(!has(p,"kobo") && Math.min(...c.num)>6) sc-=5;
+    if(!hasSet(p) && countType(p,c.type)===0) sc+=1.5;
+    opts.push([id,"market",i,sc]); } });
+  BASICS.forEach(id=>{ if(p.coins>=cost(id)) opts.push([id,"basic",-1,0.8+Math.random()]); });
+  if(!opts.length) return null;
+  opts.sort((a,b)=>b[3]-a[3]);
+  // 高いめいしょに手がとどきそうなら、ためる
+  const next = meishoOf(s).filter(id=>!has(p,id)).map(cost).filter(c=>c>p.coins).sort((a,b)=>a-b)[0];
+  if(next && next-p.coins<=3 && opts[0][1]!=="meisho" && Math.random()<0.5) return null;
+  return {id:opts[0][0],src:opts[0][1],i:opts[0][2]};
+}
+function aiStep(s){
+  const p=cur(s);
+  if(s.phase==="roll"){
+    if(has(p,"sokko") && !s.tideUsed && p.coins>=3){
+      const t=clone(s); doTide(t); if(evalRoll(t,aiRoll(t)) > evalRoll(s,aiRoll(s))+1) return {name:"tide"};
+    }
+    return {name:"roll",args:{n:aiRoll(s)}};
+  }
+  if(s.phase==="choose") return {name:"choose",args:{v:bestChoice(s)}};
+  if(s.phase==="buy"){ const b=aiBuy(s); return b ? {name:"buy",args:b} : {name:"pass"}; }
+  return null;
+}
+
+/* 操作:部屋主のブラウザだけが実行する。actor は操作した人の id */
+const turnGuard = (s,actor) => { if(s.status!=="play") return "いまは うごかせません"; if(cur(s).id!==actor && !(s.local && !cur(s).cpu)) return "あなたの番ではありません"; return null; };
+const lastStamp = {};
+const ACTIONS = {
+  join(s,actor,{name}){
+    name=String(name||"").trim().slice(0,10)||"ななし";
+    const me=s.players.find(p=>p.id===actor);
+    if(me){ me.name=name; return s; }
+    if(s.status!=="lobby") return null;
+    if(s.players.length>=4) return "まんいんです";
+    s.players.push(mkPlayer(actor,name)); log(s,`${name} さんが来た`); return s;
+  },
+  addlocal(s,actor,{name}){
+    if(!s.local) return null; name=String(name||"").trim().slice(0,10); if(!name) return "名前を入れてね";
+    if(s.players.length>=4) return "まんいんです"; s.players.push(mkPlayer("seat-"+s.players.length+"-"+rnd(1e6),name)); return s;
+  },
+  addcpu(s,actor){
+    if(actor!==s.host || s.status!=="lobby") return null;
+    if(s.players.length>=4) return "まんいんです";
+    const n=s.players.filter(p=>p.cpu).length+1;
+    s.players.push(mkPlayer("cpu-"+rnd(1e9),"コンピューター"+n,true)); return s;
+  },
+  kick(s,actor,{id}){
+    if(actor!==s.host || s.status!=="lobby" || id===s.host) return null;
+    s.players=s.players.filter(p=>p.id!==id); return s;
+  },
+  start(s,actor){ if(s.status!=="lobby") return null; if(actor!==s.host) return "へやを作った人だけが はじめられます"; if(s.players.length<2) return "2人いないと はじめられません(コンピューターも入れられるよ)"; startGame(s); return s; },
+  rematch(s,actor){ if(s.status!=="end") return null; if(actor!==s.host) return "へやを作った人だけが はじめられます"; startGame(s); return s; },
+  roll(s,actor,{n}){ const e=turnGuard(s,actor); if(e) return e; if(s.phase!=="roll") return null; doRoll(s,+n||1); return s; },
+  choose(s,actor,{v}){ const e=turnGuard(s,actor); if(e) return e; if(s.phase!=="choose") return null; v=+v; if(!s.choices.some(c=>c.v===v)) return "えらびなおしてね"; doChoose(s,v); return s; },
+  buy(s,actor,{id,src,i}){ const e=turnGuard(s,actor); if(e) return e; if(s.phase!=="buy") return null; const r=doBuy(s,id,src,+i); return r||s; },
+  pass(s,actor){ const e=turnGuard(s,actor); if(e) return e; if(s.phase!=="buy") return null; doPass(s); return s; },
+  setmode(s,actor,{mode}){ if(s.status!=="lobby") return null; if(actor!==s.host) return "へやを作った人だけが えらべます"; if(!MODES[mode]) return null; s.mode=mode; return s; },
+  tide(s,actor){ const e=turnGuard(s,actor); if(e) return e; if(s.phase!=="roll") return null; const r=doTide(s); return r||s; },
+  refresh(s,actor){ const e=turnGuard(s,actor); if(e) return e; if(s.phase!=="buy") return null; const r=doRefresh(s); return r||s; },
+  stamp(s,actor,{i}){
+    i=+i; if(!STAMPS[i] || !s.players.some(p=>p.id===actor)) return null;
+    const now=Date.now(); if(lastStamp[actor] && now-lastStamp[actor]<1200) return null; lastStamp[actor]=now;
+    s.stamp={pid:actor, i, n:((s.stamp&&s.stamp.n)||0)+1}; return s;
+  },
+};
+
+/* ============ 効果音 ============ */
+const Sound = {
+  ctx:null, on:true,
+  ensure(){
+    if(!this.ctx){ try{ this.ctx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ this.ctx=null; } }
+    if(this.ctx && this.ctx.state==="suspended") this.ctx.resume().catch(()=>{});
+  },
+  tone(f,t,d,type,vol){
+    const c=this.ctx, o=c.createOscillator(), g=c.createGain();
+    o.type=type||"sine"; o.frequency.value=f; g.gain.setValueAtTime(vol||.12,t); g.gain.exponentialRampToValueAtTime(.0001,t+d);
+    o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+d+.02);
+  },
+  play(name){
+    if(!this.on || !this.ctx || this.ctx.state!=="running") return;
+    const t=this.ctx.currentTime;
+    try{
+      if(name==="roll") for(let i=0;i<7;i++) this.tone(180+rnd(380), t+i*.05, .045, "square", .05);
+      if(name==="coin"){ this.tone(988,t,.08,"square",.06); this.tone(1319,t+.08,.16,"square",.06); }
+      if(name==="lose"){ this.tone(392,t,.12,"triangle",.1); this.tone(311,t+.12,.2,"triangle",.1); }
+      if(name==="buy") [523,659,784].forEach((f,i)=>this.tone(f,t+i*.07,.14,"triangle",.12));
+      if(name==="win") [523,659,784,1047,784,1047,1319].forEach((f,i)=>this.tone(f,t+i*.11,.2,"triangle",.13));
+      if(name==="event"){ this.tone(330,t,.3,"sawtooth",.035); this.tone(494,t+.12,.35,"sine",.1); this.tone(659,t+.24,.4,"sine",.09); }
+      if(name==="stamp"){ this.tone(660,t,.07,"sine",.14); this.tone(990,t+.07,.1,"sine",.12); }
+      if(name==="turn") [784,1047].forEach((f,i)=>this.tone(f,t+i*.1,.16,"triangle",.1));
+    }catch(e){}
+  },
+};
+try{ Sound.on = localStorage.getItem("shiomi-sound")!=="off"; }catch(e){}
+document.addEventListener("pointerdown", ()=>Sound.ensure(), {capture:true});
+document.addEventListener("keydown", ()=>Sound.ensure(), {capture:true});
+
+/* ============ 通信(部屋主のブラウザと直接つなぐ) ============ */
+const clone = o => JSON.parse(JSON.stringify(o));
+const store = {
+  get(k){ try{ return sessionStorage.getItem(k) ?? localStorage.getItem(k); }catch(e){ return null; } },
+  setS(k,v){ try{ sessionStorage.setItem(k,v); }catch(e){} },
+  setL(k,v){ try{ localStorage.setItem(k,v); }catch(e){} },
+  delL(k){ try{ localStorage.removeItem(k); }catch(e){} },
+};
+let ME = (()=>{ try{ return sessionStorage.getItem("shiomi-me"); }catch(e){ return null; } })();
+if(!ME){ ME = "p"+Math.random().toString(36).slice(2,12); store.setS("shiomi-me",ME); }
+const PEER_PREFIX = "shiomi-minato-dice-";
+const PEER_OPTS = { debug:0, config:{ iceServers:[ {urls:"stun:stun.l.google.com:19302"}, {urls:"stun:stun1.l.google.com:19302"} ] } };
+
+const Net = {
+  role:null, peer:null, conns:new Map(), hostConn:null, code:null, retry:null, closing:false,
+  reset(){
+    this.closing=true;
+    clearTimeout(this.retry);
+    try{ this.conns.forEach(c=>c.close()); }catch(e){}
+    try{ this.hostConn && this.hostConn.close(); }catch(e){}
+    try{ this.peer && this.peer.destroy(); }catch(e){}
+    this.role=null; this.peer=null; this.conns=new Map(); this.hostConn=null; this.code=null;
+    this.closing=false;
+  },
+  host(code){
+    return new Promise((resolve,reject)=>{
+      if(typeof Peer==="undefined") return reject("lib");
+      const peer = new Peer(PEER_PREFIX+code, PEER_OPTS);
+      let opened=false;
+      peer.on("open", ()=>{ opened=true; this.peer=peer; this.role="host"; this.code=code; resolve(); });
+      peer.on("connection", conn=>this.acceptGuest(conn));
+      peer.on("disconnected", ()=>{ if(!this.closing && this.peer===peer){ setTimeout(()=>{ try{ peer.reconnect(); }catch(e){} }, 1500); } });
+      peer.on("error", err=>{
+        if(!opened){ try{ peer.destroy(); }catch(e){} reject(err.type||"error"); }
+        else if(err.type==="network"||err.type==="server-error"||err.type==="socket-error") toast("つなぐためのサーバーと きれました。少しまつと もどります");
+      });
+    });
+  },
+  acceptGuest(conn){
+    conn.on("open", ()=>{ this.conns.set(conn.peer+"|"+conn.connectionId, conn); conn.send({t:"state", s:state}); });
+    conn.on("data", msg=>{
+      if(!msg || typeof msg!=="object") return;
+      if(msg.t==="hello" && typeof msg.id==="string"){ conn._pid = msg.id.slice(0,40); markOnline(); return; }
+      if(msg.t==="act" && conn._pid && ACTIONS[msg.name] && !["addlocal"].includes(msg.name)){
+        const err = applyAction(msg.name, conn._pid, msg.args||{});
+        if(err) conn.send({t:"err", msg:err});
+      }
+    });
+    const drop = ()=>{ this.conns.delete(conn.peer+"|"+conn.connectionId); markOnline(); };
+    conn.on("close", drop); conn.on("error", drop);
+  },
+  broadcast(){
+    const msg={t:"state", s:state};
+    this.conns.forEach(c=>{ if(c.open){ try{ c.send(msg); }catch(e){} } });
+  },
+  join(code){
+    return new Promise((resolve,reject)=>{
+      if(typeof Peer==="undefined") return reject("lib");
+      const peer = new Peer(PEER_OPTS);
+      this.peer=peer; this.role="guest"; this.code=code;
+      let done=false;
+      const fail = e=>{ if(!done){ done=true; reject(e); } };
+      const timer = setTimeout(()=>fail("timeout"), 15000);
+      peer.on("open", ()=>this.connectHost(code, ()=>{ if(!done){ done=true; clearTimeout(timer); resolve(); } }));
+      peer.on("error", err=>{
+        if(err.type==="peer-unavailable"){ if(!done){ clearTimeout(timer); fail("notfound"); } else this.scheduleRetry(); }
+        else if(!done){ clearTimeout(timer); fail(err.type||"error"); }
+      });
+      peer.on("disconnected", ()=>{ if(!this.closing && this.peer===peer){ setTimeout(()=>{ try{ peer.reconnect(); }catch(e){} }, 1500); } });
+    });
+  },
+  connectHost(code, onOpen){
+    const conn = this.peer.connect(PEER_PREFIX+code, {reliable:true});
+    this.hostConn = conn;
+    conn.on("open", ()=>{ connLost=false; conn.send({t:"hello", id:ME}); if(onOpen) onOpen(); render(); });
+    conn.on("data", msg=>{
+      if(!msg || typeof msg!=="object") return;
+      if(msg.t==="state" && msg.s){ const old=state; state=msg.s; render(); effects(old,state); }
+      if(msg.t==="err") toast(String(msg.msg).slice(0,80));
+    });
+    conn.on("close", ()=>{ if(this.closing || this.hostConn!==conn) return; connLost=true; render(); this.scheduleRetry(); });
+  },
+  scheduleRetry(){
+    clearTimeout(this.retry);
+    this.retry = setTimeout(()=>{ if(this.role==="guest" && this.peer && !this.peer.destroyed) this.connectHost(this.code); }, 3000);
+  },
+  send(name,args){
+    if(!this.hostConn || !this.hostConn.open){ toast("へやを作った人と つながっていません。少しまってね"); return; }
+    this.hostConn.send({t:"act", name, args});
+  },
+};
+
+function markOnline(){
+  if(!state || Net.role!=="host") return;
+  const on={}; on[ME]=true; Net.conns.forEach(c=>{ if(c.open && c._pid) on[c._pid]=true; });
+  if(JSON.stringify(on)===JSON.stringify(state.online||{})) return;
+  state.online=on; commit();
+}
+let cpuTimer=null;
+function commit(){
+  state.seq=(state.seq||0)+1;
+  if(Net.role==="host"){ store.setL("shiomi-host-"+state.code, JSON.stringify(state)); Net.broadcast(); }
+  render();
+  scheduleCpu();
+}
+function scheduleCpu(){
+  clearTimeout(cpuTimer);
+  if(!state || state.status!=="play" || !(state.local || Net.role==="host")) return;
+  if(!cur(state).cpu) return;
+  const wait = state.phase==="roll" ? 1300 : 1000;
+  cpuTimer = setTimeout(()=>{
+    if(!state || state.status!=="play" || !cur(state).cpu) return;
+    const a = aiStep(state); if(!a) return;
+    const err = applyAction(a.name, cur(state).id, a.args||{});
+    if(err){ applyAction("pass", cur(state).id, {}); }
+  }, wait);
+}
+function applyAction(name, actor, args){
+  if(!state) return "へやがありません";
+  const old=state, s=clone(state);
+  const out=ACTIONS[name](s, actor, args||{});
+  if(typeof out==="string") return out;
+  if(!out) return null;
+  // コインの増え・へりを記録して表示する
+  const d={}; let any=false;
+  out.players.forEach(p=>{ const o=old.players.find(q=>q.id===p.id); if(o && o.coins!==p.coins){ d[p.id]=p.coins-o.coins; any=true; } });
+  if(any){ out.delta=d; out.deltaSeq=(old.deltaSeq||0)+1; }
+  state=out; commit(); effects(old,state); return null;
+}
+function doAction(name,args){
+  if(!state) return;
+  if(state.local || Net.role==="host"){
+    const hostActs=["start","rematch","addlocal","setmode","addcpu","kick"];
+    const actor = state.local ? (hostActs.includes(name) ? state.host : cur(state)?.id) : ME;
+    const err=applyAction(name, actor, args); if(err) toast(err);
+  } else Net.send(name,args);
+}
+
+/* ============ 画面 ============ */
+const app = document.getElementById("app");
+const ui = { nick: store.get("shiomi-nick")||"", code:"", localName:"", connecting:false };
+const hashCode = (location.hash||"").replace("#","").toUpperCase();
+if(/^[A-Z]{4}$/.test(hashCode)) ui.code = hashCode;
+
+let state=null, lastRollSeq=0, lastDeltaSeq=0, lastRound=0, connLost=false, joinGen=0, stampShow=null, stampTimer=null;
+
+const esc = s => String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const myTurn = s => s && s.status==="play" && !cur(s).cpu && (s.local || cur(s).id===ME);
+const meIn = s => s && s.players.some(p=>p.id===ME);
+const amHost = s => s && (s.local || s.host===ME);
+const shareURL = c => location.origin + location.pathname + "#" + c;
+const pColor = i => `var(--p${i+1})`;
+const COIN = '<span class="coin" aria-hidden="true"></span>';
+const STAR = '<span class="star" aria-hidden="true">★</span>';
+
+/* 新しい状態がとどいた時の音とふきだし */
+function effects(old, nw){
+  if(!old || !nw || nw.status==="lobby") return;
+  if(nw.stamp && (!old.stamp || nw.stamp.n!==old.stamp.n)){
+    stampShow={pid:nw.stamp.pid, i:nw.stamp.i}; Sound.play("stamp");
+    clearTimeout(stampTimer); stampTimer=setTimeout(()=>{ stampShow=null; render(); }, 3000); render();
+  }
+  if(nw.status==="end" && old.status!=="end"){ Sound.play("win"); return; }
+  if(nw.rollSeq!==old.rollSeq) Sound.play("roll");
+  const mineId = nw.local ? null : ME;
+  if(nw.deltaSeq!==old.deltaSeq){
+    const vals = mineId ? [nw.delta[mineId]||0] : Object.values(nw.delta||{});
+    if(vals.some(v=>v>0)) setTimeout(()=>Sound.play("coin"), 300);
+    else if(mineId && vals[0]<0 && !(nw.log[0]||"").includes("買った")) setTimeout(()=>Sound.play("lose"), 300);
+  }
+  if((nw.log[0]||"")!==(old.log[0]||"") && (nw.log[0]||"").includes("買った")) Sound.play("buy");
+  if(nw.round!==old.round && nw.status==="play") setTimeout(()=>Sound.play("event"), 500);
+  if(myTurn(nw) && !myTurn(old) && !nw.local) setTimeout(()=>Sound.play("turn"), 700);
+}
+
+function toast(msg){
+  const t=document.getElementById("toast"); t.textContent=msg; t.hidden=false;
+  clearTimeout(toast._t); toast._t=setTimeout(()=>{t.hidden=true},3500);
+}
+function dieHTML(v, rolled){
+  const P={1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
+  if(!v) return `<div class="die blank" aria-label="まだ ふっていません"></div>`;
+  return `<div class="die${v===1?" one":""}${rolled?" rolled":""}" role="img" aria-label="${v}の目">${[...Array(9)].map((_,i)=>`<i class="${P[v].includes(i)?"on":""}"></i>`).join("")}</div>`;
+}
+function cardHTML(id, opt={}){
+  const c=CARDS[id], t=TYPES[c.type];
+  const num = c.num ? c.num.join("・") : "★";
+  const cost = opt.cost ?? c.cost;
+  const cls = ["card", opt.buyable?"buyable":"", opt.dim?"dim":"", opt.owned?"owned":"", (c.key&&!opt.owned)?"key":""].join(" ");
+  const attrs = opt.buyable ? `data-act="buy" data-id="${id}" data-src="${opt.src}" data-i="${opt.i??-1}"` : `disabled`;
+  return `<button class="${cls}" ${attrs} aria-label="${c.name}、コイン${cost}まい">
+    <div class="art t-${c.type}"><span class="kind"><b style="font-size:.85rem">${t.label}</b><br>${t.when}</span><span class="badge">${num}</span>${ICONS[c.type]}</div>
+    <div class="body"><span class="cname">${ruby(id)}</span><span class="ctext">${cardText(id)}</span>
+    <div class="foot"><span>${COIN}${cost<c.cost?`<s>${c.cost}</s>`:""}${cost}</span><span>${c.pts?`${STAR}${c.pts}`:""}</span></div></div>
+  </button>`;
+}
+function rulesHTML(){
+  return `<details class="board rules"><summary>あそびかた</summary>
+  <p>サイコロをふって コインを あつめ、カードを買って 港町を そだてよう。<b>${STAR}スターを たくさん あつめた人の かち!</b>(ノーマルは ${MODES.normal.win}こ、プラス+は ${MODES.plus.win}こ)</p>
+  <p>さいしょは みんな ${COIN}コイン3まいと、「小舟」「露店」のカードを1まいずつ もっています。</p>
+  <ol>
+    <li><b>サイコロを ふる。</b>さいしょは<b>1こ</b>だけ。めいしょ「サイコロ工房」を たてると、まいかい<b>1こか2こ</b>を えらんで ふれるよ。1こでふった時は、出た数が そのまま「合計」になる。2こが同じ数(ゾロ目)なら、しおが かわるよ。</li>
+    <li><span class="tag t-yado">やど</span> サイコロの<b>合計</b>が、ほかの人の「やど」カードの数と同じなら、ふった人は その人に コインを はらう。</li>
+    <li><span class="tag t-umi">うみ</span> サイコロを<b>1こずつ</b>見る。同じ数の「うみ」カードをもっている人は、<b>だれでも</b>コインが もらえる。</li>
+    <li><span class="tag t-mise">おみせ</span> ふった人は、出た数(2こなら「左の数」「右の数」「合計」)から<b>1つ えらぶ</b>。その数の「おみせ」カードから コインが もらえる。</li>
+    <li><b>カードを1まい 買う。</b>買わないなら コインが1まい もらえる。「いちば」のカードは、コイン1まいで1回だけ 入れかえられる。</li>
+  </ol>
+  <p><b>みちしお</b>の時は「うみ」カードのコインが1まい ふえる。<b>ひきしお</b>の時は「おみせ」カードのコインが1まい ふえる。さいしょは みちしお。</p>
+  <p><span class="tag t-meisho">めいしょ</span> は スターが多くて、とくべつな力が ずっと つづく。1人1つずつ たてられるよ。</p>
+  <p><b>できごと</b>:みんなの番が1しゅう おわるたびに、港で なにかが おこる。「大漁の日」「嵐」「大安売り」「流れ星」など、${Object.keys(EVENTS).length}しゅるい あるよ。</p>
+  <p><b>そろいボーナス</b>:「うみ」「おみせ」「やど」「めいしょ」を 1まいずつ いじょう そろえると、スターが ${SET_BONUS}こ ふえる。</p>
+  <p><b>コンピューター</b>:まちあいの へやで「コンピューターを入れる」を おすと、あいている せきに コンピューターが 入るよ。1人でも あそべる。</p>
+  <p><b>モード</b>:ノーマルは いちばのカード ${marketKinds("normal")}しゅるい・めいしょ ${meishoKinds("normal")}しゅるい。プラス+は いちばのカード ${marketKinds("plus")}しゅるい・めいしょ ${meishoKinds("plus")}しゅるいに ふえて、いちばに ${MODES.plus.market}まい ならぶよ。</p>
+  </details>`;
+}
+function header(){
+  const s=state;
+  const snd = `<button class="small" data-act="sound" aria-pressed="${Sound.on}">${Sound.on?"おと:あり":"おと:なし"}</button>`;
+  const pills = s && s.status!=="lobby" ? `
+      ${s.local?'<span class="pill">れんしゅう</span>':`<span class="pill">へや ${esc(s.code)}</span>`}
+      <span class="pill">${MODES[modeOf(s)].label}</span>
+      <span class="pill ${s.tide}">${TIDE_ICON}${s.tide==="high"?"みちしお:うみ +1":"ひきしお:おみせ +1"}</span>
+      <span class="pill">${STAR}${winOf(s)}こで かち</span>` : "";
+  return `<header class="top"><div class="brand"><h1>潮見港<span>ダイス</span></h1><p>サイコロで 港町を そだてよう!1〜4人で あそべるよ</p></div><div class="pills">${pills}${snd}</div></header>`;
+}
+function connNote(){
+  if(!state || state.local) return "";
+  if(Net.role==="guest" && connLost) return `<div class="notice warn">へやを作った人との つながりが きれました。つなぎなおしています…(その人がページを とじていたら、もう一度 ひらいてもらってね)</div>`;
+  if(Net.role==="host") return `<div class="notice">あなたが へやを作った人です。<b>このページを とじたり、ほかのアプリに 長く きりかえたりすると、みんなが あそべなくなるよ。</b></div>`;
+  return "";
+}
+
+function renderHome(){
+  const noLib = typeof Peer==="undefined";
+  app.innerHTML = header() + `<section class="home">
+    <div class="board">
+      <h2>はじめる</h2>
+      ${noLib?'<div class="notice warn">つなぐための部品を よみこめませんでした。インターネットに つながっているか たしかめて、ページを ひらきなおしてね。1台であそぶ れんしゅうは できます。</div>':""}
+      <div class="field"><label class="label" for="nick">あなたの名前</label><input id="nick" maxlength="10" placeholder="れい:みなと" value="${esc(ui.nick)}"></div>
+      ${ui.code?`<div class="notice">へや「${esc(ui.code)}」に よばれています。名前を入れて「さんかする」を おしてね。</div>`:""}
+      <div class="field"><label class="label" for="code">へやの番号で さんか</label>
+      <div class="row"><input id="code" class="code-in" maxlength="4" placeholder="ABCD" value="${esc(ui.code)}" autocapitalize="characters"><button class="${ui.code?"primary":""}" data-act="join" ${noLib||ui.connecting?"disabled":""}>${ui.connecting?"つないでいます…":"さんかする"}</button></div></div>
+      <div class="row"><button class="${ui.code?"":"primary"} big" data-act="create" ${noLib||ui.connecting?"disabled":""}>へやを作る</button><button data-act="practice">この1台で あそぶ</button></div>
+      <p class="muted" style="margin:0;font-size:.88rem;font-weight:700">「この1台で あそぶ」は、ネットなしで あそべるよ。家族と こうたいで あそんだり、コンピューターと たいせんできる。</p>
+    </div>
+    <div class="board">
+      <h2>どんなゲーム?</h2>
+      <p style="margin:0;font-weight:700">サイコロをふると、出た数と同じカードから ${COIN}コインが もらえるよ。コインで 新しいカードを買って、港町を 大きくしよう。</p>
+      <p style="margin:0" class="muted">さいしょは サイコロ1こ。「サイコロ工房」を たてると 2こ ふれるようになって、大きな数のカードも 使えるようになるよ。1しゅうごとに おこる「できごと」にも 気をつけてね。</p>
+      <div class="cards">${cardHTML("kobune")}${cardHTML("roten")}${cardHTML("kobo")}</div>
+    </div></section>` + rulesHTML();
+}
+
+function renderLobby(s){
+  const host = amHost(s), on=s.online||{};
+  const seats = [0,1,2,3].map(i=>{
+    const p=s.players[i];
+    if(!p) return `<div class="seat">あいている せき</div>`;
+    const off = !s.local && !p.cpu && !on[p.id] ? '<span class="off">つながっていない</span>' : "";
+    const kick = host && p.id!==s.host ? `<button class="small" data-act="kick" data-id="${esc(p.id)}" style="margin-left:auto">はずす</button>` : "";
+    return `<div class="seat filled"><span class="num" style="background:${pColor(i)}">${i+1}</span><span class="pname" style="text-shadow:none">${esc(p.name)}${p.cpu?'<span class="cpu">コンピューター</span>':""}${(!s.local&&p.id===ME)?'<span class="you">あなた</span>':""}${p.id===s.host&&!s.local?' <span class="muted" style="font-size:.8rem">(へやを作った人)</span>':""}</span>${off}${kick}</div>`;
+  }).join("");
+  let action="";
+  if(s.local && s.players.length<4){
+    action = `<div class="row"><input id="localName" maxlength="10" placeholder="つぎの人の名前" value="${esc(ui.localName)}"><button data-act="addlocal">せきに くわえる</button><button data-act="addcpu">コンピューターを入れる</button></div>`;
+  } else if(!s.local && host && s.players.length<4){
+    action = `<div class="row"><button data-act="addcpu">コンピューターを入れる</button></div>`;
+  } else if(!s.local && !meIn(s)){
+    action = s.players.length<4 ? `<div class="row"><button class="primary" data-act="joinseat">このへやに さんかする</button></div>` : `<div class="notice">まんいんです。見ることだけ できます。</div>`;
+  }
+  if(!s.local && !meIn(s) && s.players.length<4 && !host) action = `<div class="row"><button class="primary" data-act="joinseat">このへやに さんかする</button></div>`;
+  const startBtn = host ? `<button class="primary big" data-act="start" ${s.players.length<2?"disabled":""}>ゲームを はじめる!</button>${s.players.length<2?'<span class="muted" style="font-weight:700">2人 そろうと はじめられるよ(コンピューターでもOK)</span>':""}`
+                        : `<span class="muted" style="font-weight:700">へやを作った人が はじめるのを まっています…</span>`;
+  const share = s.local ? `<p class="muted" style="margin:0;font-weight:700">この1台で、名前を じゅんばんに くわえて こうたいで あそぶよ。コンピューターも 入れられる。</p>` : `
+    <div class="field"><span class="label">ともだちに おくるリンク</span>
+    <div class="share"><input id="shareurl" readonly value="${esc(shareURL(s.code))}"><button data-act="copy">リンクを コピー</button></div>
+    <span class="muted" style="font-size:.88rem;font-weight:700">このリンクを LINE などで おくってね。ひらいた人は 名前を入れるだけで さんかできるよ(4人まで)。</span></div>`;
+  const modeBox = `<div class="field"><span class="label">モード${host?"(へやを作った人が えらぶ)":""}</span><div class="modes">${Object.entries(MODES).map(([k,m])=>`<button class="mode ${modeOf(s)===k?"on":""}" ${host?`data-act="setmode" data-mode="${k}"`:"disabled"}><b>${m.label}</b><small>いちばのカード ${marketKinds(k)}しゅるい・めいしょ ${meishoKinds(k)}しゅるい<br>いちばに ${m.market}まい ならぶ・スター${m.win}こで かち</small><small>${k==="normal"?"はじめての人は こちら":"ノーマルに なれた人むけ。みんなから コインを もらう船や、海賊、しおを かえる めいしょが ふえるよ"}</small></button>`).join("")}</div></div>`;
+  app.innerHTML = header() + connNote() + `<section class="board" style="display:flex;flex-direction:column;gap:18px">
+    <div class="row" style="justify-content:space-between;align-items:flex-end">
+      <div>${s.local?'<h2>この1台で あそぶ</h2>':`<div class="label">へやの番号</div><div class="bigcode">${esc(s.code)}</div>`}</div>
+      <button data-act="leave">へやを出る</button>
+    </div>
+    ${share}${modeBox}
+    <div class="seats">${seats}</div>${action}<div class="row">${startBtn}</div></section>` + rulesHTML();
+}
+
+function eventHTML(s, pop){
+  const e=EVENTS[ev(s)];
+  return `<section class="board event${pop?" pop":""}"><div class="tag">${s.round}しゅうめ<b>できごと</b></div>
+    <div style="min-width:0;flex:1"><div class="ename">${rubyOf(e.name,e.yomi)}</div><div class="etext">${e.text}</div></div></section>`;
+}
+function renderGame(s){
+  const p=cur(s), mine=myTurn(s), on=s.online||{};
+  const rolled = s.rollSeq && s.rollSeq!==lastRollSeq; lastRollSeq = s.rollSeq||0;
+  const popDelta = s.deltaSeq && s.deltaSeq!==lastDeltaSeq; lastDeltaSeq = s.deltaSeq||0;
+  const popEvent = s.round!==lastRound; lastRound = s.round;
+  const dice = s.dice || Array(maxDice(p)).fill(0);
+  let msg="", ctrl="";
+  const who = p.cpu ? `<b>${esc(p.name)}</b> が かんがえ中…` : s.local ? `<b>${esc(p.name)}</b> さんの番` : (mine ? `<b>あなた</b>の番だよ!` : `<b>${esc(p.name)}</b> さんの番`);
+  if(s.phase==="roll"){
+    msg = mine ? "サイコロを ふろう!" : p.cpu ? "" : "サイコロを ふるのを まっています…";
+    if(mine){
+      const tideBtn = has(p,"sokko")?`<button data-act="tide" ${s.tideUsed||p.coins<1?"disabled":""}>測候所:「${tideName(s.tide==="high"?"low":"high")}」にする(${COIN}1)</button>`:"";
+      ctrl = maxDice(p)>=2
+        ? `<div class="row"><button class="big dicebtn" data-act="roll" data-n="1"><span class="mini">1</span>1こで ふる</button><button class="primary big dicebtn" data-act="roll" data-n="2"><span class="mini">1</span><span class="mini">2</span>2こで ふる</button>${tideBtn}</div><div class="hint">1こなら 小さい数(1〜6)、2こなら 大きい数(2〜12)が 出やすいよ。</div>`
+        : `<div class="row"><button class="primary big" data-act="roll" data-n="1">サイコロを ふる</button>${tideBtn}</div><div class="hint">めいしょ「サイコロ工房」を たてると、サイコロを2こ ふれるようになるよ。</div>`;
+    }
+  } else if(s.phase==="choose"){
+    msg = mine ? "おみせで つかう数を、1つ えらんでね。" : "おみせで つかう数を えらんでいます…";
+    if(mine){
+      const best=Math.max(...s.choices.map(c=>c.gain));
+      const [a,b]=dice;
+      const lab = v => dice.length===1 ? "サイコロの数" : (a===b ? (v===a?"サイコロの数":"合計") : (v===a?"左の数":v===b?"右の数":"合計"));
+      const gainText = c => c.kuji ? `くじ!` : `${COIN}+${c.gain}`;
+      ctrl = `<div class="choices">${s.choices.map(c=>`<button data-act="choose" data-v="${c.v}" class="${c.gain===best?"best":""}"><span class="n">${c.v}</span>${lab(c.v)}<small>${gainText(c)}</small></button>`).join("")}</div>`;
+    }
+  } else if(s.phase==="buy"){
+    msg = mine ? `カードを1まい 買うか、買わずに おわろう。(いま ${COIN}${p.coins}まい)` : p.cpu ? "" : "カードを えらんでいます…";
+    if(mine) ctrl = `<div class="row"><button data-act="pass">買わずに おわる(${COIN}+${(has(p,"kura")?3:1)+(ev(s)==="fushigi"?2:0)})</button><button data-act="refresh" ${s.refreshed||p.coins<1?"disabled":""}>いちばを 入れかえる(${COIN}1)</button></div>`;
+  }
+  const sum = s.dice ? s.dice.reduce((x,y)=>x+y,0) : 0;
+  const zoro = s.dice && s.dice.length===2 && s.dice[0]===s.dice[1];
+  const turnPanel = s.status==="end" ? winPanel(s) : `<section class="board turn">
+      <div class="dice-wrap"><div class="dice">${dice.map(v=>dieHTML(v,rolled)).join("")}</div>${s.dice?`<div class="sum">${s.dice.length===2?`合計 ${sum}`:`${sum}`}${zoro?' <span class="zoro">ゾロ目!</span>':""}</div>`:""}</div>
+      <div class="turn-msg"><div class="who">${who}</div>${msg?`<div class="say">${msg}</div>`:""}${ctrl}</div></section>`;
+
+  const order=Object.keys(CARDS);
+  const players = `<section class="players">${s.players.map((q,i)=>{
+    const chips = Object.entries(q.cards).filter(([,n])=>n>0).sort((x,y)=>order.indexOf(x[0])-order.indexOf(y[0]))
+      .map(([k,n])=>`<span class="chip t-${CARDS[k].type}">${CARDS[k].name}${n>1?"×"+n:""}</span>`).join("")
+      + (hasSet(q)?`<span class="chip bonus">そろいボーナス ★${SET_BONUS}</span>`:"") + (q.bonus?`<span class="chip bonus">流れ星 ★${q.bonus}</span>`:"");
+    const pp=pts(q), dv=(s.delta||{})[q.id];
+    const delta = dv ? `<span class="delta ${dv>0?"pos":"neg"}${popDelta?" pop":""}">${dv>0?"+":""}${dv}</span>` : "";
+    const bubble = stampShow && stampShow.pid===q.id ? `<div class="bubble">${esc(STAMPS[stampShow.i])}</div>` : "";
+    return `<div class="player ${i===s.turn&&s.status==="play"?"active":""}">${bubble}
+      <div class="phead" style="background:${pColor(i)}"><span class="pname">${esc(q.name)}${q.cpu?'<span class="cpu">CPU</span>':""}${(!s.local&&q.id===ME)?'<span class="you">あなた</span>':""}</span>${(!s.local&&!q.cpu&&!on[q.id])?'<span class="off" style="color:#fff">つながっていない</span>':""}</div>
+      <div class="pbody"><div class="stats"><span>${COIN}${q.coins}</span>${delta}<span>${STAR}${pp}<span class="muted" style="font-size:.8rem"> / ${winOf(s)}</span></span><span class="muted" style="font-size:.8rem">サイコロ${maxDice(q)}こ</span></div>
+      <div class="meter" aria-hidden="true"><span style="width:${Math.min(100,pp/winOf(s)*100)}%"></span></div>
+      <div class="chips">${chips}</div></div></div>`;}).join("")}</section>`;
+  const stamps = (!s.local && meIn(s)) ? `<div class="board stamps" style="padding:12px 16px"><span class="label">スタンプ</span>${STAMPS.map((t,i)=>`<button class="small" data-act="stamp" data-i="${i}">${t}</button>`).join("")}</div>` : "";
+
+  const canBuy = mine && s.phase==="buy";
+  const ok = id => canBuy && p.coins>=costOf(s,id);
+  const hint = canBuy ? '<span class="buyhint">光っているカードが 買えるよ</span>' : "";
+  const shop = `<section class="board shop">
+    <div class="shop-head"><h2>いつでも買えるカード</h2>${hint}</div>
+    <div class="cards">${BASICS.map(id=>cardHTML(id,{src:"basic",cost:costOf(s,id),buyable:ok(id),dim:canBuy&&!ok(id)})).join("")}</div>
+    <div class="shop-head"><h2>いちば</h2><span class="muted" style="font-weight:700">のこりの山 ${s.deck.length}まい</span></div>
+    <div class="cards">${s.market.map((id,i)=>cardHTML(id,{src:"market",i,cost:costOf(s,id),buyable:ok(id),dim:canBuy&&!ok(id)})).join("")||'<span class="muted">いちばは からっぽです</span>'}</div>
+    <div class="shop-head"><h2>めいしょ</h2><span class="muted" style="font-weight:700">1人1つずつ たてられる</span></div>
+    <div class="cards">${meishoOf(s).map(id=>{const own=has(p,id);return cardHTML(id,{src:"meisho",cost:costOf(s,id),buyable:ok(id)&&!own,dim:canBuy&&(!ok(id)||own),owned:own});}).join("")}</div>
+  </section>`;
+
+  const bottom = `<div class="bottom"><section class="board" style="display:flex;flex-direction:column;gap:8px"><h2>できごと</h2><ul class="log">${s.log.map(l=>`<li>${esc(l)}</li>`).join("")}</ul></section>${rulesHTML()}</div>`;
+  const spect = (!s.local && !meIn(s)) ? `<div class="notice">見ているだけです。このゲームには さんかしていません。</div>` : "";
+  app.innerHTML = header() + connNote() + spect + (s.status==="play"?eventHTML(s,popEvent):"") + turnPanel + players + stamps + shop + bottom +
+    `<div class="row"><button data-act="leave">へやを出る</button></div>`;
+}
+function winPanel(s){
+  const w=s.players[s.winner];
+  const rank=[...s.players].sort((x,y)=>pts(y)-pts(x)||y.coins-x.coins);
+  return `<section class="board win"><div class="label" style="color:var(--ink)">ゲームおわり</div><h2>${esc(w.name)} ${w.cpu?"":"さんの "}かち!</h2>
+    <p style="margin:0;font-weight:800">${rank.map((q,i)=>`${i+1}い ${esc(q.name)} ${STAR}${pts(q)}`).join("  /  ")}</p>
+    <p style="margin:0;font-weight:700">${s.round}しゅうで おわったよ</p>
+    ${amHost(s)?`<button class="primary big" data-act="rematch">同じメンバーで もう1回!</button>`:`<span style="font-weight:700">へやを作った人が つぎのゲームを はじめるのを まっています</span>`}</section>`;
+}
+function render(){
+  if(!state) return renderHome();
+  if(state.status==="lobby") return renderLobby(state);
+  renderGame(state);
+}
+
+/* ============ ボタン ============ */
+function needNick(){
+  const n=(ui.nick||"").trim();
+  if(!n){ toast("名前を入れてね"); document.getElementById("nick")?.focus(); return null; }
+  store.setL("shiomi-nick",n); return n.slice(0,10);
+}
+function newCode(){ const A="ABCDEFGHJKLMNPQRSTUVWXYZ"; return [...Array(4)].map(()=>A[rnd(A.length)]).join(""); }
+function setHash(c){ try{ history.replaceState(null,"",c?"#"+c:location.pathname+location.search); }catch(e){} }
+function netErrText(e){
+  if(e==="notfound") return "そのへやが 見つかりません。番号と、へやを作った人が ページを ひらいたままか、たしかめてね";
+  if(e==="timeout") return "つながりませんでした。もう一度 ためすか、Wi-Fi などに かえてみてね";
+  if(e==="lib") return "つなぐための部品を よみこめませんでした。ページを ひらきなおしてね";
+  return "つながりませんでした。少しまって もう一度 ためしてね";
+}
+
+const handlers = {
+  async create(){
+    const n=needNick(); if(!n) return;
+    ui.connecting=true; render();
+    for(let t=0;t<5;t++){
+      const c=newCode();
+      state=newGame(c, ME, n); state.online={[ME]:true};
+      try{ await Net.host(c); ui.connecting=false; setHash(c); commit(); return; }
+      catch(e){ state=null; if(e!=="unavailable-id"){ ui.connecting=false; render(); return toast(netErrText(e)); } }
+    }
+    ui.connecting=false; render(); toast("へやを作れませんでした。もう一度 おしてね");
+  },
+  async join(){
+    const n=needNick(); if(!n) return;
+    const c=(ui.code||"").trim().toUpperCase();
+    if(!/^[A-Z]{4}$/.test(c)) return toast("へやの番号は、アルファベット4もじだよ");
+    if(ui.connecting) return;
+    const g=++joinGen;
+    Net.reset(); ui.connecting=true; render();
+    try{ await Net.join(c); if(g!==joinGen) return; ui.connecting=false; setHash(c); Net.send("join",{name:n}); }
+    catch(e){ if(g!==joinGen) return; Net.reset(); ui.connecting=false; render(); toast(netErrText(e)); }
+  },
+  joinseat(){ const n=needNick()||ui.nick||"ななし"; doAction("join",{name:n}); },
+  practice(){
+    joinGen++; ui.connecting=false; Net.reset(); const n=(ui.nick||"").trim().slice(0,10)||"プレイヤー1";
+    state=newGame("LOCAL","seat-0",n,true); setHash(null); render();
+  },
+  addlocal(){ const n=ui.localName; ui.localName=""; doAction("addlocal",{name:n}); },
+  addcpu(){ doAction("addcpu"); },
+  kick(el){ doAction("kick",{id:el.dataset.id}); },
+  start(){ doAction("start"); },
+  rematch(){ doAction("rematch"); },
+  roll(el){ doAction("roll",{n:+el.dataset.n||1}); },
+  choose(el){ doAction("choose",{v:+el.dataset.v}); },
+  buy(el){ doAction("buy",{id:el.dataset.id, src:el.dataset.src, i:+el.dataset.i}); },
+  pass(){ doAction("pass"); },
+  refresh(){ doAction("refresh"); },
+  setmode(el){ doAction("setmode",{mode:el.dataset.mode}); },
+  tide(){ doAction("tide"); },
+  stamp(el){ doAction("stamp",{i:+el.dataset.i}); },
+  sound(){ Sound.on=!Sound.on; store.setL("shiomi-sound", Sound.on?"on":"off"); Sound.ensure(); if(Sound.on) Sound.play("coin"); render(); },
+  async copy(){
+    const url=shareURL(state.code);
+    try{ await navigator.clipboard.writeText(url); toast("リンクを コピーしたよ"); }
+    catch(e){ const i=document.getElementById("shareurl"); if(i){ i.focus(); i.select(); } toast("えらばれたリンクを コピーしてね"); }
+  },
+  leave(){
+    joinGen++; ui.connecting=false; clearTimeout(cpuTimer);
+    if(Net.role==="host" && state){ store.delL("shiomi-host-"+state.code); }
+    Net.reset(); state=null; connLost=false; ui.code=""; setHash(null); render();
+  },
+};
+document.addEventListener("click", e=>{
+  const el=e.target.closest("[data-act]"); if(!el || el.disabled) return;
+  const h=handlers[el.dataset.act]; if(h) h(el);
+});
+document.addEventListener("input", e=>{
+  const id=e.target.id; if(id==="nick") ui.nick=e.target.value; if(id==="code") ui.code=e.target.value.toUpperCase(); if(id==="localName") ui.localName=e.target.value;
+});
+document.addEventListener("keydown", e=>{
+  if(e.key!=="Enter") return; const id=e.target.id;
+  if(id==="code") handlers.join(); if(id==="localName") handlers.addlocal();
+});
+window.addEventListener("beforeunload", e=>{ if(Net.role==="host" && state && state.status==="play"){ e.preventDefault(); e.returnValue=""; } });
+
+/* へやを作った人がページを開きなおした時は、同じへやを開きなおす */
+async function resumeHost(){
+  const c=ui.code; if(!c) return false;
+  const raw=store.get("shiomi-host-"+c); if(!raw) return false;
+  let saved; try{ saved=JSON.parse(raw); }catch(e){ return false; }
+  if(!saved || saved.host!==ME) return false;
+  ui.connecting=true; render();
+  for(let t=0;t<8;t++){
+    try{ await Net.host(c); state=saved; state.online={[ME]:true}; ui.connecting=false; commit(); toast("へやを ひらきなおしたよ"); return true; }
+    catch(e){ if(e!=="unavailable-id") break; await new Promise(r=>setTimeout(r,2500)); }
+  }
+  ui.connecting=false; render(); return false;
+}
+render();
+resumeHost().then(ok=>{
+  if(!ok && ui.code && ui.nick && typeof Peer!=="undefined"){ handlers.join(); }
+});
+</script>
+</body>
+</html>
